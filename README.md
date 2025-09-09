@@ -1,6 +1,17 @@
-This course introduces students to the design and implementation of programming
-languages. Specific topics include lexing/parsing, formal grammars, runtime
-semantics, scoping, semantic analysis, and backend code generation. Additionally,
-the course will explore variations in programming language design between
-multiple languages to gain a better understanding of differences across languages
-and the underlying concepts/problems they aim to solve.
+# Programming Language Concepts 📚
+
+Repo for my coursework in **Programming Language Concepts (CIS XXXX)**.  
+This repository contains all assignments throughout the Fall 2025 semester.
+
+---
+
+## 🛠️ Technologies
+- Java (main programming language)
+- IntelliJ IDEA for development
+- Git for version control
+
+---
+
+## 🚀 Assignments
+- [Exerccise 1]([assignments/hw01/](https://ufl.instructure.com/courses/540435/assignments/6740265)) ✅
+- [Project 1]([assignments/hw02/](https://ufl.instructure.com/courses/540435/assignments/6740272?module_item_id=12223207)) 🔜
