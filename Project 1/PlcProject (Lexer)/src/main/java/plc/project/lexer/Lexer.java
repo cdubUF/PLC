@@ -1,5 +1,8 @@
 package plc.project.lexer;
 
+import com.google.common.base.Preconditions;
+
+import javax.naming.ldap.PagedResultsControl;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,6 +26,7 @@ public final class Lexer {
 
     public List<Token> lex() throws LexException {
         var tokens = new ArrayList<Token>();
+        // tokens ::= (skipped* token)* skipped*
         while (chars.has(0)) {
             //TODO: Skip whitespace/comments
             tokens.add(lexToken());
@@ -39,11 +43,21 @@ public final class Lexer {
     }
 
     private Token lexToken() {
+        // if a letter, then consum a letter
+        // then call lexIdentifier with half an identifier built
+        // indentifer
+        // token :: = identifier | number | character | string
+
+        if (chars.peek("[A-Za-z]")) { // .peek() looks at the next character and doesnt advance the iterable
+            return lexIdentifier();
+        }
         throw new UnsupportedOperationException("TODO"); //TODO
     }
 
     private Token lexIdentifier() {
-        throw new UnsupportedOperationException("TODO"); //TODO
+        while(chars.match("[A-Za-z0-9_-]")) {}
+        return new Token(Token.Type.IDENTIFIER, chars.emit());
+        // identifier ::= [A-Za-z] [A-Za-z0-9_-]*
     }
 
     private Token lexNumber() {
