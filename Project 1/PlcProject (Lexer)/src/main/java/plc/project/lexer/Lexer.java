@@ -29,6 +29,9 @@ public final class Lexer {
         // tokens ::= (skipped* token)* skipped*
         while (chars.has(0)) {
             //TODO: Skip whitespace/comments
+            if (chars.match(" ")) {
+                chars.emit(); // discord
+            }
             tokens.add(lexToken());
         }
         return tokens;
@@ -48,35 +51,53 @@ public final class Lexer {
         // indentifer
         // token :: = identifier | number | character | string
 
+
+        // identifier
         if (chars.peek("[A-Za-z]")) { // .peek() looks at the next character and doesnt advance the iterable
             return lexIdentifier();
+        }
+        // number
+        else if (chars.peek("[0-9]")) {
+            return lexNumber();
         }
         throw new UnsupportedOperationException("TODO"); //TODO
     }
 
     private Token lexIdentifier() {
+        Preconditions.checkState(chars.match("[A-Za-z_]"));
         while(chars.match("[A-Za-z0-9_-]")) {}
         return new Token(Token.Type.IDENTIFIER, chars.emit());
         // identifier ::= [A-Za-z] [A-Za-z0-9_-]*
     }
 
     private Token lexNumber() {
-        throw new UnsupportedOperationException("TODO"); //TODO
+        // number ::= [+-]? [0-9]+ ('.' [0-9]+)? ('e' [+-]? [0-9]+)?
+        while (chars.match("[0-9]")){}
+        if (chars.match("\\.", "[0-9]")) {
+            while (chars.match("[0-9]")){}
+        }
+        return new Token(Token.Type.DECIMAL, chars.emit());
+        // need to make sure it is more than just decimal & also 1. doesnt work and that is on me to figure out!
     }
 
     private Token lexCharacter() {
+        // character ::= ['] ([^'\n\r\\] | escape) [']
         throw new UnsupportedOperationException("TODO"); //TODO
     }
 
     private Token lexString() {
+        // string ::= '"' ([^"\n\r\\] | escape)* '"'
         throw new UnsupportedOperationException("TODO"); //TODO
     }
 
     private void lexEscape() {
+        // escape ::= '\' [bnrt'"\]
         throw new UnsupportedOperationException("TODO"); //TODO
     }
 
     public Token lexOperator() {
+        // operator ::= [<>!=] '='? | [^A-Za-z_0-9'" \b\n\r\t]
+
         throw new UnsupportedOperationException("TODO"); //TODO
     }
 
