@@ -39,6 +39,7 @@ public final class Lexer {
                 lexComment();
                 continue;
             }
+            tokens.add(lexToken());
         }
         return tokens;
     }
@@ -50,32 +51,29 @@ public final class Lexer {
 
     private void lexComment() {
         Preconditions.checkState(chars.match("/", "/"));
-        while (chars.has(0) && !chars.peek("[\\n]", "[\\r]")) {
+        while (chars.has(0) && !chars.peek("[\\n]") && !chars.peek("[\\r]")) {
             chars.match("."); // eat until newline
         }
         chars.emit(); // discard comment
     }
 
-    private Token lexToken() {
-        // token :: = identifier | number | character | string
+    private Token lexToken() throws LexException {
+        // token ::= identifier | number | character | string | operator
 
-        // identifier
-        if (chars.peek("[A-Za-z]")) { // .peek() looks at the next character and doesnt advance the iterable
-            return lexIdentifier();
-        }
-        // number
-        if (chars.peek("[0-9]")) {
-            return lexNumber();
-        }
-        // character & escape
-        if (chars.peek("'")) {
-            return lexCharacter();
-        }
+        // identifier starts with letter or underscore
+        if (chars.peek("[A-Za-z_]")) return lexIdentifier();
+
+        // number: optional sign only if a digit follows, or starts with a digit
+        if (chars.peek("[+\\-]", "[0-9]") || chars.peek("[0-9]")) return lexNumber();
+
+        // character
+        if (chars.peek("'")) return lexCharacter();
+
         // string
-        if (chars.peek("\"")) {
-            return lexString();
-        }
-        throw new UnsupportedOperationException("TODO"); //TODO
+        if (chars.peek("\"")) return lexString();
+
+        // fallback: operator (catch-all)
+        return lexOperator();
     }
 
     private Token lexIdentifier() {
@@ -85,7 +83,7 @@ public final class Lexer {
         // identifier ::= [A-Za-z] [A-Za-z0-9_-]*
     }
 
-    private Token lexNumber() {
+    private Token lexNumber() throws LexException{
         // number ::= [+-]? [0-9]+ ('.' [0-9]+)? ('e' [+-]? [0-9]+)?
 
         // check for leading + or - sign
@@ -115,7 +113,7 @@ public final class Lexer {
         return new Token(type, chars.emit());
     }
 
-    private Token lexCharacter() {
+    private Token lexCharacter() throws LexException {
         // character ::= ['] ([^'\n\r\\] | escape) [']
 
         // check opening quote
@@ -126,29 +124,85 @@ public final class Lexer {
             lexEscape();
         } else if (chars.peek("[^'\\n\\r\\\\]")) {
             chars.match(".");
+        } else {
+            throw new LexException("Invalid or empty character literal ", chars.getIndex());
+        }
+
+        // Step 3: closing quote
+        if (!chars.match("'")) {
+            throw new LexException("Unterminated character literal ", chars.getIndex());
         }
         return new Token(Token.Type.CHARACTER, chars.emit());
 
     }
 
-    private Token lexString() {
+    private Token lexString() throws LexException {
         // string ::= '"' ([^"\n\r\\] | escape)* '"'
-        throw new UnsupportedOperationException("TODO"); //TODO
-    }
 
-    private void lexEscape() {
-        // escape ::= '\' [bnrt'"\]
-        Preconditions.checkState(chars.match("\\\\"));
-        if (!chars.match("[bnrt'\"\\\\]")) {
-            System.err.println("Invalid escape sequence");
+        // Opening quote
+        if (!chars.match("\"")) {
+            throw new LexException("String must start with quote", chars.getIndex());
         }
 
+        // Loop for the content
+        while (true) {
+            // End of string?
+            if (chars.peek("\"")) {
+                chars.match("\""); // consume closing
+                return new Token(Token.Type.STRING, chars.emit());
+            }
+
+            // Escape sequence?
+            if (chars.peek("\\\\")) {
+                lexEscape(); // consumes '\' + valid escape char
+                continue;
+            }
+
+            // Normal char?
+            if (chars.peek("[^\"\\n\\r\\\\]")) {
+                chars.match("."); // consume one safe char
+                continue;
+            }
+
+            // edge cases
+            if (!chars.has(0)) {
+                throw new LexException("Unterminated string literal ", chars.getIndex());
+            }
+            if (chars.peek("[\\n]") || chars.peek("[\\r]")) {
+                throw new LexException("String literal cannot contain raw newline ", chars.getIndex());
+            }
+
+            // Any other invalid character
+            throw new LexException("Invalid character in string literal ", chars.getIndex());
+        }
     }
 
-    public Token lexOperator() {
+    private void lexEscape() throws LexException{
+        // escape ::= '\' [bnrt'"\]
+
+        Preconditions.checkState(chars.match("\\\\"));
+        if (!chars.match("[bnrt'\"\\\\]")) { throw new LexException("Invalid escape sequence", chars.getIndex()); }
+
+    }
+
+    public Token lexOperator() throws LexException{
         // operator ::= [<>!=] '='? | [^A-Za-z_0-9'" \b\n\r\t]
-        Preconditions.checkState(chars.match("\""));
-        throw new UnsupportedOperationException("TODO"); //TODO
+
+        // case 1: one of < > ! =, optionally followed by '='
+        if (chars.peek("[<>!=]")) {
+            chars.match("[<>!=]");        // consume the first operator char
+            chars.match("=");             // optionally consume '=' for <= >= == !=
+            return new Token(Token.Type.OPERATOR, chars.emit());
+        }
+
+        // Case 2: any single char NOT in [A-Za-z_0-9'" space backspace newline carriage tab]
+        // Backspace is \u0008 (since \b outside a char class is word-boundary in regex).
+        if (chars.match("[^A-Za-z_0-9'\" \\n\\r\\t\\u0008]")) {
+            return new Token(Token.Type.OPERATOR, chars.emit());
+        }
+
+        // something slipped passed the checks but it still wrong
+        throw new LexException("Unexpected character; not a valid operator", chars.getIndex());
     }
 
     /**
@@ -211,6 +265,7 @@ public final class Lexer {
             length = 0;
             return literal;
         }
+        public int getIndex() { return index; }
 
     }
 
