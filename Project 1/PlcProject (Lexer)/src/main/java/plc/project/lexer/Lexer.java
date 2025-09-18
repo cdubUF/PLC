@@ -28,37 +28,52 @@ public final class Lexer {
         var tokens = new ArrayList<Token>();
         // tokens ::= (skipped* token)* skipped*
         while (chars.has(0)) {
-            //TODO: Skip whitespace/comments
-            if (chars.match(" ")) {
-                chars.emit(); // discord
+
+            // consuming whitespace
+            if (chars.peek("[\\s]")) {
+                lexWhitespace();
+                continue;
             }
-            tokens.add(lexToken());
+            // comment
+            if (chars.peek("/", "/")) {
+                lexComment();
+                continue;
+            }
         }
         return tokens;
     }
 
     private void lexWhitespace() {
-        throw new UnsupportedOperationException("TODO"); //TODO
+        while(chars.match("[\\s]")) { }
+        chars.emit(); // discard
     }
 
     private void lexComment() {
-        throw new UnsupportedOperationException("TODO"); //TODO
+        Preconditions.checkState(chars.match("/", "/"));
+        while (chars.has(0) && !chars.peek("[\\n]", "[\\r]")) {
+            chars.match("."); // eat until newline
+        }
+        chars.emit(); // discard comment
     }
 
     private Token lexToken() {
-        // if a letter, then consum a letter
-        // then call lexIdentifier with half an identifier built
-        // indentifer
         // token :: = identifier | number | character | string
-
 
         // identifier
         if (chars.peek("[A-Za-z]")) { // .peek() looks at the next character and doesnt advance the iterable
             return lexIdentifier();
         }
         // number
-        else if (chars.peek("[0-9]")) {
+        if (chars.peek("[0-9]")) {
             return lexNumber();
+        }
+        // character & escape
+        if (chars.peek("'")) {
+            return lexCharacter();
+        }
+        // string
+        if (chars.peek("\"")) {
+            return lexString();
         }
         throw new UnsupportedOperationException("TODO"); //TODO
     }
@@ -72,17 +87,48 @@ public final class Lexer {
 
     private Token lexNumber() {
         // number ::= [+-]? [0-9]+ ('.' [0-9]+)? ('e' [+-]? [0-9]+)?
-        while (chars.match("[0-9]")){}
-        if (chars.match("\\.", "[0-9]")) {
-            while (chars.match("[0-9]")){}
+
+        // check for leading + or - sign
+        if (chars.peek("[+\\-]", "[0-9]")) {
+            chars.match("[+\\-]");
         }
-        return new Token(Token.Type.DECIMAL, chars.emit());
-        // need to make sure it is more than just decimal & also 1. doesnt work and that is on me to figure out!
+        // counting digits
+        while (chars.match("[0-9]")) {}
+
+        boolean hasDot = false;
+        boolean hasExp = false;
+
+        // decimal
+        if (chars.peek("\\.", "[0-9]")) {
+            chars.match("\\.");
+            hasDot = true;
+            while (chars.match("[0-9]")) {}
+        }
+        // exponent
+        if (chars.peek("[eE]", "[+\\-]", "[0-9]") || chars.peek("[eE]", "[0-9]")) {
+            hasExp = true;
+            chars.match("[eE]");
+            chars.match("[+\\-]");        // optional sign
+            while (chars.match("[0-9]")) { /* eat */ }
+        }
+        Token.Type type = (hasDot || hasExp) ? Token.Type.DECIMAL : Token.Type.INTEGER;
+        return new Token(type, chars.emit());
     }
 
     private Token lexCharacter() {
         // character ::= ['] ([^'\n\r\\] | escape) [']
-        throw new UnsupportedOperationException("TODO"); //TODO
+
+        // check opening quote
+        Preconditions.checkState(chars.match("'"));
+
+        // inside the quotes
+        if (chars.peek("\\\\")) {
+            lexEscape();
+        } else if (chars.peek("[^'\\n\\r\\\\]")) {
+            chars.match(".");
+        }
+        return new Token(Token.Type.CHARACTER, chars.emit());
+
     }
 
     private Token lexString() {
@@ -92,12 +138,16 @@ public final class Lexer {
 
     private void lexEscape() {
         // escape ::= '\' [bnrt'"\]
-        throw new UnsupportedOperationException("TODO"); //TODO
+        Preconditions.checkState(chars.match("\\\\"));
+        if (!chars.match("[bnrt'\"\\\\]")) {
+            System.err.println("Invalid escape sequence");
+        }
+
     }
 
     public Token lexOperator() {
         // operator ::= [<>!=] '='? | [^A-Za-z_0-9'" \b\n\r\t]
-
+        Preconditions.checkState(chars.match("\""));
         throw new UnsupportedOperationException("TODO"); //TODO
     }
 
