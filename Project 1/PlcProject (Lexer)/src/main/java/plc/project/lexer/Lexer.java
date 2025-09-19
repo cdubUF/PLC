@@ -109,7 +109,7 @@ public final class Lexer {
             chars.match("[+\\-]");        // optional sign
             while (chars.match("[0-9]")) { /* eat */ }
         }
-        Token.Type type = (hasDot || hasExp) ? Token.Type.DECIMAL : Token.Type.INTEGER;
+        Token.Type type = hasDot ? Token.Type.DECIMAL : Token.Type.INTEGER;
         return new Token(type, chars.emit());
     }
 
