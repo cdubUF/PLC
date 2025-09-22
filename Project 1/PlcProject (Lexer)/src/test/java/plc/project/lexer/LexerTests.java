@@ -20,7 +20,18 @@ public final class LexerTests {
         return Stream.of(
             Arguments.of("Space", " ", true),
             Arguments.of("Newline", "\n", true),
-            Arguments.of("Multiple", "    \n    ", true)
+            Arguments.of("Multiple", "    \n    ", true),
+            // Missing Test Cases
+            Arguments.of("Whitespace - Backspace", "\b", true),   // ␈
+            Arguments.of("Whitespace - Newline", "\n", true),     // ␊
+            Arguments.of("Whitespace - Carriage Return", "\r", true), // ␍
+            Arguments.of("Whitespace - Tab", "\t", true),         // ␉
+            Arguments.of("Whitespace - Mixed", " \b\n\r\t", true), // mix of all
+            Arguments.of("Invalid Whitespace - Form Feed", "\f", false),// ␌
+            Arguments.of("Tab Only", "\t", true),
+            Arguments.of("Carriage Return Only", "\r", true)
+
+
         );
     }
 
@@ -33,7 +44,10 @@ public final class LexerTests {
     public static Stream<Arguments> testComment() {
         return Stream.of(
             Arguments.of("Empty", "//", true),
-            Arguments.of("Text", "//comment", true)
+            Arguments.of("Text", "//comment", true),
+            Arguments.of("Comment With Spaces", "// hello world", true),
+            Arguments.of("Comment With Symbols", "//!@#$%", true)
+
         );
     }
 
@@ -48,7 +62,12 @@ public final class LexerTests {
             Arguments.of("Alphabetic", "getName", true),
             Arguments.of("Alphanumeric", "thelegend27", true),
             Arguments.of("Leading Hyphen", "-five", false),
-            Arguments.of("Leading Digit", "1fish2fish", false)
+            Arguments.of("Leading Digit", "1fish2fish", false),
+            Arguments.of("Single Letter", "x", true),
+            Arguments.of("With Underscore", "my_var", true),
+            Arguments.of("CamelCase", "myVarTest", true),
+            Arguments.of("Leading Underscore", "_hidden", true)
+
         );
     }
 
@@ -63,7 +82,10 @@ public final class LexerTests {
             Arguments.of("Single Digit", "1", true),
             Arguments.of("Multiple Digits", "123", true),
             Arguments.of("Exponent", "1e10", true),
-            Arguments.of("Missing Exponent Digits", "1e", false)
+            Arguments.of("Missing Exponent Digits", "1e", false),
+            Arguments.of("Zero", "0", true),
+            Arguments.of("Leading Zeros", "000123", true),
+            Arguments.of("Negative Integer", "-42", true)
         );
     }
 
@@ -78,7 +100,11 @@ public final class LexerTests {
             Arguments.of("Decimal", "1.0", true),
             Arguments.of("Multiple Digits", "123.456", true),
             Arguments.of("Exponent", "1.0e10", true),
-            Arguments.of("Trailing Decimal", "1.", false)
+            Arguments.of("Trailing Decimal", "1.", false),
+            Arguments.of("Leading Zero", "0.75", true),
+            Arguments.of("Trailing Zeros", "10.500", true),
+            Arguments.of("Negative Decimal", "-3.14", true)
+
         );
     }
 
@@ -198,6 +224,21 @@ public final class LexerTests {
                 new Token(Token.Type.STRING, "\"Hello, World!\""),
                 new Token(Token.Type.OPERATOR, ")"),
                 new Token(Token.Type.OPERATOR, ";")
+            )),
+            Arguments.of("If Statement", "if (x <= 10) { print(\"ok\"); }", List.of(
+                new Token(Token.Type.IDENTIFIER, "if"),
+                new Token(Token.Type.OPERATOR, "("),
+                new Token(Token.Type.IDENTIFIER, "x"),
+                new Token(Token.Type.OPERATOR, "<="),
+                new Token(Token.Type.INTEGER, "10"),
+                new Token(Token.Type.OPERATOR, ")"),
+                new Token(Token.Type.OPERATOR, "{"),
+                new Token(Token.Type.IDENTIFIER, "print"),
+                new Token(Token.Type.OPERATOR, "("),
+                new Token(Token.Type.STRING, "\"ok\""),
+                new Token(Token.Type.OPERATOR, ")"),
+                new Token(Token.Type.OPERATOR, ";"),
+                new Token(Token.Type.OPERATOR, "}")
             ))
         );
     }

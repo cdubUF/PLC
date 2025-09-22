@@ -30,7 +30,7 @@ public final class Lexer {
         while (chars.has(0)) {
 
             // consuming whitespace
-            if (chars.peek("[\\s]")) {
+            if (chars.peek("[ \\u0008\\n\\r\\t]")) {
                 lexWhitespace();
                 continue;
             }
@@ -45,8 +45,10 @@ public final class Lexer {
     }
 
     private void lexWhitespace() {
-        while(chars.match("[\\s]")) { }
-        chars.emit(); // discard
+        // whitespace ::= [ \b\n\r\t]+
+        // Only consume: space, backspace, newline, carriage return, tab
+        while (chars.match("[ \\u0008\\n\\r\\t]")) { }
+        chars.emit(); // discard skipped chars
     }
 
     private void lexComment() {
@@ -158,7 +160,7 @@ public final class Lexer {
                 continue;
             }
 
-            // Normal char?
+            // just normal char
             if (chars.peek("[^\"\\n\\r\\\\]")) {
                 chars.match("."); // consume one safe char
                 continue;
@@ -189,15 +191,14 @@ public final class Lexer {
         // operator ::= [<>!=] '='? | [^A-Za-z_0-9'" \b\n\r\t]
 
         // case 1: one of < > ! =, optionally followed by '='
-        if (chars.peek("[<>!=]")) {
-            chars.match("[<>!=]");        // consume the first operator char
-            chars.match("=");             // optionally consume '=' for <= >= == !=
+        if (chars.match("[<>!=]")) {
+            chars.match("=");             // consume '=' for <= >= == !=
             return new Token(Token.Type.OPERATOR, chars.emit());
         }
 
-        // Case 2: any single char NOT in [A-Za-z_0-9'" space backspace newline carriage tab]
-        // Backspace is \u0008 (since \b outside a char class is word-boundary in regex).
-        if (chars.match("[^A-Za-z_0-9'\" \\n\\r\\t\\u0008]")) {
+        // Case 2: any single char NOT in [A-Za-z_0-9'" space backspace newline carriage tab
+        // Backspace is \u0008
+        if (chars.match("[^A-Za-z_0-9'\" \\u0008\\n\\r\\t]")) {
             return new Token(Token.Type.OPERATOR, chars.emit());
         }
 
