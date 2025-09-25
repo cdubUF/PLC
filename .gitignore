@@ -1,0 +1,26 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar  # keep the wrapper jar
+!**/src/main/**                     # keep your source code
+!**/src/test/**
+
+# Java
+*.class
+*.log
+
+# Eclipse / IntelliJ / VS Code
+*.iml
+.idea/
+*.ipr
+*.iws
+out/
+.vscode/
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Other
+*.war
+*.ear
