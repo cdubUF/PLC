@@ -1,6 +1,6 @@
 # Programming Language Concepts 📚
 
-Repo for my coursework in **Programming Language Concepts (CIS XXXX)**.  
+Repo for my coursework in **Programming Language Concepts (COP4020)**.  
 This repository contains all assignments throughout the Fall 2025 semester.
 
 ---
