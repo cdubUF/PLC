@@ -105,16 +105,79 @@ public final class Parser {
     }
 
     private Ast.Expr parsePrimaryExpr() throws ParseException {
-        throw new UnsupportedOperationException("TODO"); //TODO
+        // ( expr )
+        if (tokens.peek("(")) {
+            return parseGroupExpr();
+        }
+        // literals: NIL / TRUE / FALSE / integer / decimal / char / string
+        if (tokens.peek("NIL", "TRUE", "FALSE") ||
+                tokens.peek(Token.Type.INTEGER) ||
+                tokens.peek(Token.Type.DECIMAL) ||
+                tokens.peek(Token.Type.CHARACTER) ||
+                tokens.peek(Token.Type.STRING)) {
+            return parseLiteralExpr();
+        }
+        // object literal
+        if (tokens.peek("OBJECT")) {
+            return parseObjectExpr();
+        }
+        // identifier → variable OR function call (decided by following "(")
+        if (tokens.peek(Token.Type.IDENTIFIER)) {
+            return parseVariableOrFunctionExpr();
+        }
+        // nothing matched → not a valid primary
+        throw new ParseException("Expected expression", tokens.getNext());
     }
+
 
     private Ast.Expr parseLiteralExpr() throws ParseException {
-        throw new UnsupportedOperationException("TODO"); //TODO
+        if (tokens.match("NIL")) {
+            return new Ast.Expr.Literal(null);
+        } else if (tokens.match("TRUE")) {
+            return new Ast.Expr.Literal(Boolean.TRUE);
+        } else if (tokens.match("FALSE")) {
+            return new Ast.Expr.Literal(Boolean.FALSE);
+        } else if (tokens.peek(Token.Type.INTEGER)) {
+            var tok = tokens.get(0);
+            tokens.match(Token.Type.INTEGER);
+            return new Ast.Expr.Literal(new java.math.BigInteger(tok.literal()));
+        } else if (tokens.peek(Token.Type.DECIMAL)) {
+            var tok = tokens.get(0);
+            tokens.match(Token.Type.DECIMAL);
+            return new Ast.Expr.Literal(new java.math.BigDecimal(tok.literal()));
+        } else if (tokens.peek(Token.Type.CHARACTER)) {
+            var tok = tokens.get(0);
+            tokens.match(Token.Type.CHARACTER);
+            // literal is something like "'c'" → lexer should have stripped quotes
+            return new Ast.Expr.Literal(tok.literal().charAt(0));
+        } else if (tokens.peek(Token.Type.STRING)) {
+            var tok = tokens.get(0);
+            tokens.match(Token.Type.STRING);
+            return new Ast.Expr.Literal(tok.literal()); // already unescaped by lexer
+        }
+        throw new ParseException("Expected literal", tokens.getNext());
     }
 
-    private Ast.Expr parseGroupExpr() throws ParseException {
-        throw new UnsupportedOperationException("TODO"); //TODO
+
+    private Ast.Expr parseGroupExpr() throws ParseException{
+    // 1) require '('
+    if (!tokens.match("(")) {
+        throw new ParseException("Expected '('", tokens.getNext());
     }
+
+    // 2) parse inner expression
+    Ast.Expr inner = parseExpr();
+
+    // 3) require ')'
+    if (!tokens.match(")")) {
+        // attach the next token so the error points at where we realized it was missing
+        throw new ParseException("Expected ')'", tokens.getNext());
+    }
+
+    // 4) wrap it
+    return new Ast.Expr.Group(inner);
+}
+
 
     private Ast.Expr parseObjectExpr() throws ParseException {
         throw new UnsupportedOperationException("TODO"); //TODO
