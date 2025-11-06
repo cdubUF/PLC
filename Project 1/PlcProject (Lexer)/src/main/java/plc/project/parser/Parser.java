@@ -58,41 +58,42 @@ public final class Parser {
     }
 
     private Ast.Stmt parseLetStmt() throws ParseException {
+        // LET
         if (!tokens.match("LET")) {
             throw new ParseException("Expected LET.", tokens.getNext());
         }
 
+        // identifier
         if (!tokens.peek(Token.Type.IDENTIFIER)) {
             throw new ParseException("Expected identifier.", tokens.getNext());
         }
         String name = tokens.get(0).literal();
         tokens.match(Token.Type.IDENTIFIER);
 
-        // Optional type annotation: ":" TypeIdent
-        Optional<String> type = Optional.empty();
+        // Optional type annotation: ":" TypeIdent  (parse & IGNORE for the AST)
         if (tokens.match(":")) {
             if (!tokens.peek(Token.Type.IDENTIFIER)) {
                 throw new ParseException("Expected type name after ':'.", tokens.getNext());
             }
-            type = Optional.of(tokens.get(0).literal());
+            // Consume the type name but don't store it (AST doesn't carry types)
             tokens.match(Token.Type.IDENTIFIER);
         }
 
         // Optional initializer: "= expr"
-        Optional<Ast.Expr> value = Optional.empty();
+        java.util.Optional<Ast.Expr> value = java.util.Optional.empty();
         if (tokens.match("=")) {
-            value = Optional.of(parseExpr());
+            value = java.util.Optional.of(parseExpr());
         }
 
+        // ";"
         if (!tokens.match(";")) {
             throw new ParseException("Expected ';'.", tokens.getNext());
         }
 
-        // Prefer with type if provided, else the value-only convenience
-        return type.isPresent()
-                ? new Ast.Stmt.Let(name, type, value)
-                : new Ast.Stmt.Let(name, value);
+        // AST.Let only takes (name, value)
+        return new Ast.Stmt.Let(name, value);
     }
+
 
 
     private Ast.Stmt parseDefStmt() throws ParseException {

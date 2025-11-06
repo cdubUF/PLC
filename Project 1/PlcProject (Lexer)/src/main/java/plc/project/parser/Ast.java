@@ -1,8 +1,9 @@
 package plc.project.parser;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 /**
  * IMPORTANT: This is an API file and should not be modified by your submission.
@@ -17,25 +18,14 @@ public sealed interface Ast {
 
         record Let(
             String name,
-            Optional<String> type,
             Optional<Expr> value
-        ) implements Stmt {
-            public Let(String name, Optional<Expr> value) {
-                this(name, Optional.empty(), value);
-            }
-        }
+        ) implements Stmt {}
 
         record Def(
             String name,
             List<String> parameters,
-            List<Optional<String>> parameterTypes, //a Parameter class is better, but not compatible with existing uses.
-            Optional<String> returnType,
             List<Stmt> body
-        ) implements Stmt {
-            public Def(String name, List<String> parameters, List<Stmt> body) {
-                this(name, parameters, Stream.generate(Optional::<String>empty).limit(parameters.size()).toList(), Optional.empty(), body);
-            }
-        }
+        ) implements Stmt {}
 
         record If(
             Expr condition,
@@ -67,7 +57,7 @@ public sealed interface Ast {
     sealed interface Expr extends Ast {
 
         record Literal(
-            Object value
+            @Nullable Object value
         ) implements Expr {
             @Override
             public String toString() {
