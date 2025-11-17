@@ -54,7 +54,75 @@ public final class Environment {
     }
 
     public static boolean isSubtypeOf(Type subtype, Type supertype) {
-        throw new UnsupportedOperationException("TODO"); //TODO
+        // 1) All types are subtypes of Any.
+        if (supertype == Type.ANY) {
+            return true;
+        }
+
+        // 2) All types are subtypes AND supertypes of Dynamic.
+        if (subtype == Type.DYNAMIC || supertype == Type.DYNAMIC) {
+            return true;
+        }
+
+        // 3) All types are subtypes of themselves.
+        if (subtype.equals(supertype)) {
+            return true;
+        }
+
+        // 4) Primitive subtype relationships.
+        // Nil, Comparable, and Iterable are subtypes of Equatable.
+        if (supertype == Type.EQUATABLE &&
+                (subtype == Type.NIL || subtype == Type.COMPARABLE || subtype == Type.ITERABLE)) {
+            return true;
+        }
+
+        // Boolean, Integer, Decimal, Character, and String are subtypes of Comparable.
+        if (supertype == Type.COMPARABLE &&
+                (subtype == Type.BOOLEAN ||
+                        subtype == Type.INTEGER ||
+                        subtype == Type.DECIMAL ||
+                        subtype == Type.CHARACTER ||
+                        subtype == Type.STRING)) {
+            return true;
+        }
+
+        // 5) ObjectType prototype chaining (bonus / for object + prototype tests).
+        if (subtype instanceof Type.ObjectType subObj && supertype instanceof Type.ObjectType superObj) {
+            // Same "shape"/name already handled by equals earlier, so here we only consider prototypes.
+            // Look for a "prototype" property on the subtype.
+            var prototypeOpt = subObj.scope().get("prototype", false);
+            if (prototypeOpt.isPresent()) {
+                var protoType = prototypeOpt.get();
+
+                // If the prototype itself is Dynamic, treat this object as a subtype of any other object,
+
+                if (protoType == Type.DYNAMIC) {
+                    return true;
+                }
+
+                // If the prototype is an ObjectType, check it recursively.
+                if (protoType instanceof Type.ObjectType protoObj) {
+                    return isSubtypeOf(protoObj, supertype);
+                }
+            }
+        }
+
+        // 6) Function types – only identical signatures are considered subtypes.
+        if (subtype instanceof Type.Function subFn && supertype instanceof Type.Function superFn) {
+            if (subFn.parameters().size() != superFn.parameters().size()) {
+                return false;
+            }
+            for (int i = 0; i < subFn.parameters().size(); i++) {
+                if (!subFn.parameters().get(i).equals(superFn.parameters().get(i))) {
+                    return false;
+                }
+            }
+            return subFn.returns().equals(superFn.returns());
+        }
+
+        // otherwise, no subtype relationship.
+        return false;
     }
+
 
 }
