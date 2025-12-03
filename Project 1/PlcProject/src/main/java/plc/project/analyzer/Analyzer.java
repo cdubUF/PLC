@@ -142,28 +142,37 @@ public final class Analyzer implements Ast.Visitor<Ir, AnalyzeException> {
         if (!condition.type().isSubtypeOf(Type.BOOLEAN)) {
             throw new AnalyzeException(
                     "IF condition must be Boolean, got " + condition.type(),
-                    java.util.Optional.of(ast)
+                    Optional.of(ast)
             );
         }
 
-        // Save outer scope
         Scope outer = scope;
 
-        // THEN body
+        // THEN body scope
         scope = new Scope(outer);
+
+        // ⬇ copy $RETURN binding if exists
+        outer.resolve("$RETURN", true)
+                .ifPresent(retType -> scope.define("$RETURN", retType));
+
         var thenBody = new ArrayList<Ir.Stmt>();
         for (var stmtAst : ast.thenBody()) {
             thenBody.add(visit(stmtAst));
         }
 
-        // ELSE body
+        // ELSE body scope
         scope = new Scope(outer);
+
+        // ⬇ copy $RETURN binding here too
+        outer.resolve("$RETURN", true)
+                .ifPresent(retType -> scope.define("$RETURN", retType));
+
         var elseBody = new ArrayList<Ir.Stmt>();
         for (var stmtAst : ast.elseBody()) {
             elseBody.add(visit(stmtAst));
         }
 
-        // Restore outer scope
+        // Restore
         scope = outer;
 
         return new Ir.Stmt.If(condition, thenBody, elseBody);

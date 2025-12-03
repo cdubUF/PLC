@@ -97,53 +97,83 @@ public final class Parser {
 
 
     private Ast.Stmt parseDefStmt() throws ParseException {
+        // DEF
         if (!tokens.match("DEF")) {
             throw new ParseException("Expected DEF.", tokens.getNext());
         }
+
+        // function name
         if (!tokens.peek(Token.Type.IDENTIFIER)) {
             throw new ParseException("Expected function name.", tokens.getNext());
         }
         String name = tokens.get(0).literal();
         tokens.match(Token.Type.IDENTIFIER);
 
+        // '('
         if (!tokens.match("(")) {
             throw new ParseException("Expected '('.", tokens.getNext());
         }
 
+        // parameters:  name [: Type]  (, name [: Type])*
         List<String> params = new ArrayList<>();
-        // Optional parameter list: ident (',' ident)*
+        List<Optional<String>> paramTypes = new ArrayList<>();
+
         if (!tokens.peek(")")) {
-            if (!tokens.peek(Token.Type.IDENTIFIER)) {
-                throw new ParseException("Expected parameter name.", tokens.getNext());
-            }
-            params.add(tokens.get(0).literal());
-            tokens.match(Token.Type.IDENTIFIER);
-            while (tokens.match(",")) {
+            while (true) {
                 if (!tokens.peek(Token.Type.IDENTIFIER)) {
                     throw new ParseException("Expected parameter name.", tokens.getNext());
                 }
-                params.add(tokens.get(0).literal());
+                String paramName = tokens.get(0).literal();
                 tokens.match(Token.Type.IDENTIFIER);
+                params.add(paramName);
+
+                Optional<String> typeName = Optional.empty();
+                if (tokens.match(":")) {
+                    if (!tokens.peek(Token.Type.IDENTIFIER)) {
+                        throw new ParseException("Expected parameter type.", tokens.getNext());
+                    }
+                    typeName = Optional.of(tokens.get(0).literal());
+                    tokens.match(Token.Type.IDENTIFIER);
+                }
+                paramTypes.add(typeName);
+
+                if (!tokens.match(",")) {
+                    break;
+                }
             }
         }
 
+        // ')'
         if (!tokens.match(")")) {
             throw new ParseException("Expected ')'.", tokens.getNext());
         }
 
+        // optional return type: ':' Type
+        Optional<String> returnType = Optional.empty();
+        if (tokens.match(":")) {
+            if (!tokens.peek(Token.Type.IDENTIFIER)) {
+                throw new ParseException("Expected return type.", tokens.getNext());
+            }
+            returnType = Optional.of(tokens.get(0).literal());
+            tokens.match(Token.Type.IDENTIFIER);
+        }
+
+        // DO
         if (!tokens.match("DO")) {
             throw new ParseException("Expected DO.", tokens.getNext());
         }
 
+        // body
         List<Ast.Stmt> body = new ArrayList<>();
         while (!tokens.peek("END")) {
             body.add(parseStmt());
         }
         tokens.match("END");
 
-        // Use convenience ctor: (name, params, body)
-        return new Ast.Stmt.Def(name, params, body);
+        // full constructor: (name, parameters, parameterTypes, returnType, body)
+        return new Ast.Stmt.Def(name, params, paramTypes, returnType, body);
     }
+
 
 
     private Ast.Stmt parseIfStmt() throws ParseException {
